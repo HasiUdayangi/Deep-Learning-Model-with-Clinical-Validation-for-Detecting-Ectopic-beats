@@ -64,3 +64,40 @@ def build_model(hp):
     )
     
     return model
+
+
+
+patience = 5
+early_stopping = EarlyStopping(monitor='val_loss', patience=patience, verbose=1)
+model_checkpoint = ModelCheckpoint('RESULTS/model_.keras', monitor='val_accuracy', save_best_only=True, verbose=1, mode='max')
+
+# Setup Bayesian Optimization tuner
+tuner = BayesianOptimization(
+    build_model,
+    objective='val_accuracy',
+    max_trials=100,
+    executions_per_trial=1,
+    directory='hyperparam_opt',
+    project_name='ectopic_detection_v8'
+)
+
+
+tuner.search(t_x, t_y, epochs=50, validation_data=(val_x, val_y), callbacks=[early_stopping, model_checkpoint])
+
+
+# Load the best model
+best_model = tuner.get_best_models(num_models=1)[0]
+
+# Save model
+best_model.save('RESULTS/model_.keras')
+
+# Get the best hyperparameters and print them
+best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+print("Best hyperparameters:", best_hps.values)
+
+metric_results = calculate_metrics_with_ci(val_y, val_pred_classes, num_classes=3, n_bootstrap=1000)
+
+# Printing results
+for metric, result in metric_results.items():
+    print(f"{metric}: Mean = {result['mean']}, 95% CI = {result['95% CI']}")
+
