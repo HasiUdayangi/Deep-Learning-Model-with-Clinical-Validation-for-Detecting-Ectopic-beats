@@ -48,6 +48,10 @@ def build_model(hp):
         units=hp.Int('dense_units', min_value=64, max_value=256, step=64),
         activation='relu'
     )(x)
+    x = Dense(
+        units=hp.Int('dense_units2', min_value=32, max_value=128, step=32),
+        activation='relu'
+    )(x)
     
     # Output Layer
     output = Dense(3, activation='softmax')(x)
@@ -55,7 +59,7 @@ def build_model(hp):
     model = Model(inputs=inp, outputs=output)
     model.compile(
         optimizer=Adam(hp.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
-        loss='sparse_categorical_crossentropy',
+        loss='binary_crossentropy',
         metrics=['accuracy']
     )
     
