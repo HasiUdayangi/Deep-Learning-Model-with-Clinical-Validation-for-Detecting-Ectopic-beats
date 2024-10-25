@@ -44,7 +44,7 @@ def network():
     dense_end1 = Dense(64, activation='relu')(flatten)
     dense_end1 = BatchNormalization()(dense_end1)
     dense_end2 = Dense(32, activation='relu')(dense_end1)
-    main_output = Dense(4, activation='softmax')(dense_end2)
+    main_output = Dense(3, activation='softmax')(dense_end2)
     
     model = Model(inputs=inp, outputs=main_output)
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
