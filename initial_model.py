@@ -54,7 +54,7 @@ def build_model(hp):
     )(x)
     
     # Output Layer
-    output = Dense(3, activation='softmax')(x)
+    output = Dense(3, activation='sigmoid')(x)
     
     model = Model(inputs=inp, outputs=output)
     model.compile(
