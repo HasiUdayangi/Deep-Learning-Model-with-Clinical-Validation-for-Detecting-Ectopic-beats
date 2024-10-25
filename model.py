@@ -65,8 +65,33 @@ def build_model(hp):
     
     return model
 
+# Model training
+MAX_EPOCHS = 100
+batch_size=32
 
 
+stopping = keras.callbacks.EarlyStopping(patience=20)
+reduce_lr = keras.callbacks.ReduceLROnPlateau(
+        factor=0.1,
+        patience=2,
+        min_lr=0.001 * 0.001)
+checkpointer = keras.callbacks.ModelCheckpoint(
+        filepath=get_filename_for_saving(save_dir),
+        save_best_only=False)
+
+
+model.fit(
+    train_x, train_y,
+    batch_size=batch_size,
+    epochs=MAX_EPOCHS,
+    validation_data=(val_x, val_y),
+    callbacks=[checkpointer, reduce_lr, stopping])
+
+best_model_path = get_filename_for_saving(save_dir)
+best_model = keras.models.load_model(best_model_path)
+
+
+# Hyper parameter tunning
 patience = 5
 early_stopping = EarlyStopping(monitor='val_loss', patience=patience, verbose=1)
 model_checkpoint = ModelCheckpoint('RESULTS/model_.keras', monitor='val_accuracy', save_best_only=True, verbose=1, mode='max')
@@ -101,3 +126,13 @@ metric_results = calculate_metrics_with_ci(val_y, val_pred_classes, num_classes=
 for metric, result in metric_results.items():
     print(f"{metric}: Mean = {result['mean']}, 95% CI = {result['95% CI']}")
 
+
+
+best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+print("Best hyperparameters:", best_hps.values)
+
+metric_results = calculate_metrics_with_ci(val_y, val_pred_classes, num_classes=3, n_bootstrap=1000)
+
+# Printing results
+for metric, result in metric_results.items():
+    print(f"{metric}: Mean = {result['mean']}, 95% CI = {result['95% CI']}")
