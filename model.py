@@ -66,29 +66,56 @@ def build_model(hp):
     return model
 
 # Model training
-MAX_EPOCHS = 100
-batch_size=32
+def fit_and_evaluate(t_x, val_x, t_y, val_y, EPOCHS=20, BATCH_SIZE=32):
+    model = 
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+    model_checkpoint = ModelCheckpoint('RESULTS/ectopic_.keras', verbose=1, save_best_only=True)
+    history = model.fit(t_x, t_y, epochs=EPOCHS, batch_size=BATCH_SIZE, 
+                        validation_data=(val_x, val_y),
+                        callbacks=[early_stopping, model_checkpoint], 
+                        verbose=1)
+    val_pred = model.predict(val_x)
 
+    accuracy, per_class_accuracy, sensitivity, specificity, ppv, f1 = calculate_metrics(val_y, val_pred, num_classes=3)
+    return {
+        'accuracy': accuracy, 
+        'per_class_accuracy': per_class_accuracy, 
+        'sensitivity': sensitivity, 
+        'specificity': specificity, 
+        'ppv': ppv, 
+        'f1': f1
+    }
+    
+    
+results = []
+n_folds = 5
+epochs = 100
+batch_size = 32
 
-stopping = keras.callbacks.EarlyStopping(patience=20)
-reduce_lr = keras.callbacks.ReduceLROnPlateau(
-        factor=0.1,
-        patience=2,
-        min_lr=0.001 * 0.001)
-checkpointer = keras.callbacks.ModelCheckpoint(
-        filepath=get_filename_for_saving(save_dir),
-        save_best_only=False)
+for i in range(n_folds):
+    print(f"Training on Fold: {i+1}")
+    t_x, val_x, t_y, val_y = train_test_split(X_train, y_train, test_size=0.1, random_state=np.random.randint(1, 1000))
+    fold_metrics = fit_and_evaluate(t_x, val_x, t_y, val_y, epochs, batch_size)
+    results.append(fold_metrics)
+    print(results)
 
+# Calculate mean and 95% confidence intervals for each metric
+metric_means = {}
+metric_cis = {}
+for key in results[0].keys():
+    metric_values = [result[key] for result in results]
+    if isinstance(metric_values[0], np.ndarray):  # For metrics that are arrays per class
+        metric_means[key] = np.mean(metric_values, axis=0)
+        metric_cis[key] = [t.ppf(0.975, n_folds - 1) * sem(vals) for vals in zip(*metric_values)]
+    else:
+        metric_means[key] = np.mean(metric_values)
+        metric_cis[key] = t.ppf(0.975, n_folds - 1) * sem(metric_values)
 
-model.fit(
-    train_x, train_y,
-    batch_size=batch_size,
-    epochs=MAX_EPOCHS,
-    validation_data=(val_x, val_y),
-    callbacks=[checkpointer, reduce_lr, stopping])
+print("\nMean Metrics and 95% Confidence Intervals:")
+for key, mean in metric_means.items():
+    ci = metric_cis[key]
+    print(f"{key}: Mean = {mean}, 95% CI = {ci}")
 
-best_model_path = get_filename_for_saving(save_dir)
-best_model = keras.models.load_model(best_model_path)
 
 
 # Hyper parameter tunning
