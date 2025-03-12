@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+wfdb
+scipy
+scikit-learn
+seaborn
+tensorflow
+keras-tuner
+joblib
+boto3
+python-dateutil
+ipython
+resampy
