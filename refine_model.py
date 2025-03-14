@@ -66,14 +66,14 @@ def build_refined_model(hp):
     # Hyperparameter: batch size (will be used during model.fit)
     batch_size = hp.Choice('batch_size', values=[16, 32, 64, 128, 256], default=32)
     # Store the chosen batch size in the model for later use
-    base_model._hp_batch_size = batch_size
+    model._hp_batch_size = batch_size
 
     # Insert a Dropout layer after the base model output
-    x = base_model.output
+    x = model.output
     x = Dropout(dropout_rate)(x)
     
     # Create the refined model
-    refined_model = Model(inputs=base_model.input, outputs=x)
+    refined_model = Model(inputs=model.input, outputs=x)
     
     optimizer = Adam(learning_rate=lr)
     refined_model.compile(optimizer=optimizer,
