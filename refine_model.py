@@ -3,11 +3,12 @@
 Refine Pre-Trained Ectopic Beat Detection Model with Hyperparameter Tuning
 
 The script:
-  - Loads and preprocesses the dataset.
+  - Loads and preprocesses the external dataset.
   - Loads the pre-trained model.
-  - Freezes the model and unfreezes the last N layers (where N is a tunable hyperparameter).
+  - Freezes the model and unfreezes the last N layers (N is a tunable hyperparameter).
+  - Inserts a Dropout layer (with tunable dropout rate) after the base model output.
   - Compiles the model with a tunable learning rate.
-  - Uses RandomSearch to find the best hyperparameters based on validation accuracy.
+  - Uses RandomSearch (via Keras Tuner) to find the best hyperparameters based on validation accuracy.
   - Trains and evaluates the refined model.
   - Saves the best refined model.
 """
@@ -56,9 +57,16 @@ def build_refined_model(hp):
     # Unfreeze the last 'num_unfreeze' layers
     for layer in model.layers[-num_unfreeze:]:
         layer.trainable = True
+
+    dropout_rate = hp.Choice('dropout_rate', values=[0.2, 0.3], default=0.2)
+    x = base_model.output
+    x = Dropout(dropout_rate)(x)
     
+    # Create a new refined model
+    model = Model(inputs=base_model.input, outputs=x)
+  
     # Hyperparameter: learning rate
-    lr = hp.Float('learning_rate', min_value=1e-5, max_value=1e-3, sampling='LOG', default=1e-4)
+    lr = hp.Choice('learning_rate', values=[0.001, 0.0001], default=0.001)
     optimizer = Adam(learning_rate=lr)
     
     model.compile(optimizer=optimizer,
@@ -85,18 +93,19 @@ tuner.search(x_train, y_train,
 best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
 print("Best hyperparameters found:")
 print(f"  num_unfreeze: {best_hps.get('num_unfreeze')}")
+print(f"  dropout_rate: {best_hps.get('dropout_rate')}")
 print(f"  learning_rate: {best_hps.get('learning_rate')}")
 
 
-model = tuner.hypermodel.build(best_hps)
-history = model.fit(x_train, y_train,
+refined_model = tuner.hypermodel.build(best_hps)
+history = refined_model.fit(x_train, y_train,
                     epochs=100,            # Increase epochs for final training
                     validation_data=(x_val, y_val),
                     batch_size=32)
 
-val_loss, val_acc = model.evaluate(x_val, y_val)
+val_loss, val_acc = refined_model.evaluate(x_val, y_val)
 print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
 
 # Save the best refined model
-model.save('')
+refined_model.save('')
 print("Refined model saved as ''.")
