@@ -59,20 +59,27 @@ def build_refined_model(hp):
         layer.trainable = True
 
     dropout_rate = hp.Choice('dropout_rate', values=[0.2, 0.3], default=0.2)
+    
+    # Hyperparameter: learning rate
+    lr = hp.Choice('learning_rate', values=[0.001, 0.0001], default=0.001)
+    
+    # Hyperparameter: batch size (will be used during model.fit)
+    batch_size = hp.Choice('batch_size', values=[16, 32, 64, 128, 256], default=32)
+    # Store the chosen batch size in the model for later use
+    base_model._hp_batch_size = batch_size
+
+    # Insert a Dropout layer after the base model output
     x = base_model.output
     x = Dropout(dropout_rate)(x)
     
-    # Create a new refined model
-    model = Model(inputs=base_model.input, outputs=x)
-  
-    # Hyperparameter: learning rate
-    lr = hp.Choice('learning_rate', values=[0.001, 0.0001], default=0.001)
-    optimizer = Adam(learning_rate=lr)
+    # Create the refined model
+    refined_model = Model(inputs=base_model.input, outputs=x)
     
-    model.compile(optimizer=optimizer,
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    return model
+    optimizer = Adam(learning_rate=lr)
+    refined_model.compile(optimizer=optimizer,
+                            loss='categorical_crossentropy',
+                            metrics=['accuracy'])
+    return refined_model
 
 
 tuner = kt.RandomSearch(
@@ -95,13 +102,15 @@ print("Best hyperparameters found:")
 print(f"  num_unfreeze: {best_hps.get('num_unfreeze')}")
 print(f"  dropout_rate: {best_hps.get('dropout_rate')}")
 print(f"  learning_rate: {best_hps.get('learning_rate')}")
+print(f"  batch_size: {best_hps.get('batch_size')}")
 
 
 refined_model = tuner.hypermodel.build(best_hps)
+best_batch_size = best_hps.get('batch_size')
 history = refined_model.fit(x_train, y_train,
                     epochs=100,            # Increase epochs for final training
                     validation_data=(x_val, y_val),
-                    batch_size=32)
+                    batch_size=best_batch_size)
 
 val_loss, val_acc = refined_model.evaluate(x_val, y_val)
 print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_acc:.4f}")
