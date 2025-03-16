@@ -2,15 +2,6 @@
 """
 Refine Pre-Trained Ectopic Beat Detection Model with Hyperparameter Tuning
 
-The script:
-  - Loads and preprocesses the external dataset.
-  - Loads the pre-trained model.
-  - Freezes the model and unfreezes the last N layers (N is a tunable hyperparameter).
-  - Inserts a Dropout layer (with tunable dropout rate) after the base model output.
-  - Compiles the model with a tunable learning rate.
-  - Uses RandomSearch (via Keras Tuner) to find the best hyperparameters based on validation accuracy.
-  - Trains and evaluates the refined model.
-  - Saves the best refined model.
 """
 
 import pandas as pd
