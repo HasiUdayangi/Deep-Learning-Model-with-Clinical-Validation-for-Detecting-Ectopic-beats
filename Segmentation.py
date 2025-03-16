@@ -57,8 +57,8 @@ data_all2 = []
 
 for j in range(len(data_list2)):
     ecg = data_list2[j]
-    ann = wfdb.rdann(ecg, extension="atr",pn_dir = 'ltdb', sampfrom = 0, sampto = 2000000)
-    signal, fields = wfdb.rdsamp(ecg, pn_dir = 'ltdb', sampfrom = 0, sampto = 2000000)
+    ann = wfdb.rdann(ecg, extension="atr",pn_dir = 'ltdb')
+    signal, fields = wfdb.rdsamp(ecg, pn_dir = 'ltdb')
     signal = signal[:,0]
     #signal = scale(signal)
     data = []
